@@ -6,16 +6,14 @@
 table, tr,th {
     border: 1px solid black;
 }
-section table:nth-child(2n + 2){
-    margin-top: 150px;
-    margin-bottom: 300px;
+section table{
+    margin-bottom: 50px;
 }
 tbody tr td:first-child{
     border: 2px solid black;
 }
 table{
     border-radius: 3px;
-    margin-bottom: 190px;
 }
 .contest{
     background-color: orange;
@@ -28,7 +26,7 @@ tbody td:first-child {
     background-color: aquamarine;
 }
 
-tbody td {
+.bloco {
     background-color: #ab9c56;
     width: 10px;
     height: 10px;

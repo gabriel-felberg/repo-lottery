@@ -108,7 +108,7 @@ function SumDifferenceAndGroups({ context, initial }: LotteryNumber) {
     const results: Array<Container> = [];
 
     for (let i = array.length - 1; i > 0; i -= turns) {
-      if (results.length >= 11) break;
+      if (results.length >= 10) break;
       const container: Container = {
         numbers: ["", "", "", "", "", ""],
         group: ["", "", "", "", "", ""],
@@ -187,16 +187,16 @@ function SumDifferenceAndGroups({ context, initial }: LotteryNumber) {
               <tr>
                 <td>{e.contest}</td>
                 {e.numbers?.map((number) => (
-                  <td>{number}</td>
+                  <td className="bloco">{number}</td>
                 ))}
                 {e.difference?.map((difference) => (
-                  <td>{difference}</td>
+                  <td className="bloco">{difference}</td>
                 ))}
                 {e.group?.map((group) => (
-                  <td>{group}</td>
+                  <td className="bloco">{group}</td>
                 ))}
                 {e.sum?.map((sum) => (
-                  <td>{sum}</td>
+                  <td className="bloco">{sum}</td>
                 ))}
               </tr>: null
             ))}

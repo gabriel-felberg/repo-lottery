@@ -5,12 +5,10 @@ table, td , th {
 table{
     border-radius: 10px;
 }
-
 th {
     padding: 5px 10px 5px 10px;
     background-color: #19cdff;
 }
-
 th:nth-child(1){
     border-radius: 10px 0px 0px 0px;
 }
@@ -19,9 +17,9 @@ th:nth-child(14){
 }
 td {
     background-color: #ab9c56;
-    
 }
-section{
+.flex{
     display: flex;
     gap: 10px;
 }
+

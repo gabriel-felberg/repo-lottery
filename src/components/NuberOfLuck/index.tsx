@@ -11,42 +11,29 @@ interface Occurrence {
   repeat: number;
   number: string;
 }
+
 interface TurnOccurrence {
   [key: string]: number;
 }
 
 function NumberOfLuck({ context, initial }: LotteryNumber) {
-  const [newArrayOccurrences, setNewArrayOccurrences] = useState<
-    TurnOccurrence[]
-  >([] as TurnOccurrence[]);
+  const [newArrayOccurrences, setNewArrayOccurrences] = useState<TurnOccurrence[]>([]);
+  const [newArrayOccurrences2, setNewArrayOccurrences2] = useState<TurnOccurrence[]>([]);
+  const [allNumberArrays, setAllNumberArrays] = useState<string[][]>([]);
 
-  const arrayOfNumbersStartingFrom31: string[] = Array.from(
-    { length: 30 },
-    (_, i) => (i + 31).toString().padStart(2, "0")
-  );
-  const arrayOfNumbersStartingFrom01: string[] = Array.from(
-    { length: 30 },
-    (_, i) => (i + 1).toString().padStart(2, "0")
-  );
-  const [newArrayOccurrences2, setNewArrayOccurrences2] = useState<
-    TurnOccurrence[]
-  >([] as TurnOccurrence[]);
-
-  const [allNumberArrays, setAllNumberArrays] = useState<Array<string[]>>(
-    [] as Array<string[]>
-  );
+  const arrayOfNumbersStartingFrom31: string[] = Array.from({ length: 30 }, (_, i) => (i + 31).toString().padStart(2, "0"));
+  const arrayOfNumbersStartingFrom01: string[] = Array.from({ length: 30 }, (_, i) => (i + 1).toString().padStart(2, "0"));
   const turns = Array.from({ length: 596 }, (_, i) => i + 5);
-  const repeats = Array.from({ length: 13 }, (_, i) => i + 3);
+  const repeats = Array.from({ length: 11 }, (_, i) => i + 3);
 
   useEffect(() => {
     let retries: number = 0;
-    const theBigArray: Array<string[]> = [];
+    const theBigArray: string[][] = [];
+
     async function fetchNumbers() {
       for (let i = initial; i <= context; i++) {
         try {
-          const { data } = await axios.get(
-            `https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena/${i}`
-          );
+          const { data } = await axios.get(`https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena/${i}`);
           theBigArray.push(data.listaDezenas);
         } catch (err) {
           if (retries <= 3) {
@@ -58,28 +45,42 @@ function NumberOfLuck({ context, initial }: LotteryNumber) {
             theBigArray.push(["00", "00", "00", "00", "00", "00"]);
           }
         }
+
         if (i === context) break;
       }
+
       setAllNumberArrays(theBigArray);
     }
+
     fetchNumbers();
   }, [context, initial]);
 
-  function CountOccurrences(
-    array: Array<string[]>,
-    OneresponsesOfNumbers: string,
-    turn: number
-  ) {
+  const countOccurrencesMemoized = useCallback(
+    (value: string, turn: number) => {
+      return CountOccurrences(allNumberArrays, value, turn);
+    },
+    [allNumberArrays]
+  );
+
+  useEffect(() => {
+    const newArrayOccurrences = turns.map((turn) => getOccurrencesForNumbers(arrayOfNumbersStartingFrom01, turn));
+    setNewArrayOccurrences(FormatTable(newArrayOccurrences, 1, 30));
+  }, [countOccurrencesMemoized]);
+
+  useEffect(() => {
+    const newArrayOccurrences2 = turns.map((turn) => getOccurrencesForNumbers(arrayOfNumbersStartingFrom31, turn));
+    setNewArrayOccurrences2(FormatTable(newArrayOccurrences2, 31, 60));
+  }, [countOccurrencesMemoized]);
+
+  function CountOccurrences(array: string[][], OneresponsesOfNumbers: string, turn: number) {
     let count = 0;
     let maxCount = 0;
-    const arr = [];
+    const arr: { numbers: string[]; contest: number; turn: number }[] = [];
 
     for (let i = array.length - 1; i >= 0; i -= turn) {
       if (array[i].includes(OneresponsesOfNumbers)) {
         arr.push({ numbers: array[i], contest: i, turn });
       }
-      console.log(count);
-      console.log(maxCount);
 
       if (array[i].includes(OneresponsesOfNumbers)) {
         count++;
@@ -90,46 +91,17 @@ function NumberOfLuck({ context, initial }: LotteryNumber) {
         count = 0;
       }
     }
-    if (maxCount < 3) {
-      maxCount = 0
-    }
-    console.log(arr);
 
+    if (maxCount < 3) {
+      maxCount = 0;
+    }
 
     return { repeat: maxCount, number: OneresponsesOfNumbers };
   }
 
-  const countOccurrencesMemoized = useCallback(
-    (value: string, turn: number) => {
-      return CountOccurrences(allNumberArrays, value, turn);
-    },
-    [allNumberArrays]
-  );
-
   function getOccurrencesForNumbers(numbers: string[], turn: number) {
     return numbers.map((number) => countOccurrencesMemoized(number, turn));
   }
-
-  useEffect(() => {
-    const newArrayOccurrences = turns.map((turn) =>
-      getOccurrencesForNumbers(arrayOfNumbersStartingFrom01, turn)
-    );
-    console.log(newArrayOccurrences[0]);
-
-    console.log(newArrayOccurrences[10]);
-
-    setNewArrayOccurrences(FormatTable(newArrayOccurrences, 1, 30));
-  }, [countOccurrencesMemoized]);
-
-  useEffect(() => {
-    const newArrayOccurrences2 = turns.map((turn) =>
-      getOccurrencesForNumbers(arrayOfNumbersStartingFrom31, turn)
-    );
-
-    console.log(newArrayOccurrences2[10]);
-
-    setNewArrayOccurrences2(FormatTable(newArrayOccurrences2, 31, 60));
-  }, [countOccurrencesMemoized]);
 
   function FormatTable(array: Occurrence[][], init: number, and: number) {
     const numbers: { [key: string]: number }[] = [{}];
@@ -150,7 +122,7 @@ function NumberOfLuck({ context, initial }: LotteryNumber) {
   }
 
   return (
-    <section>
+    <section className="flex">
       <div>
         <table>
           <thead>
@@ -166,9 +138,7 @@ function NumberOfLuck({ context, initial }: LotteryNumber) {
               <tr key={number}>
                 <td>{number}</td>
                 {repeats.map((repeat) => {
-                  const occurrence = newArrayOccurrences.find(
-                    (occurrence) => occurrence[number] === repeat
-                  );
+                  const occurrence = newArrayOccurrences.find((occurrence) => occurrence[number] === repeat);
                   return <td key={`${number}-${repeat}`}>{occurrence ? "X" : "-"}</td>;
                 })}
               </tr>
@@ -191,13 +161,12 @@ function NumberOfLuck({ context, initial }: LotteryNumber) {
               <tr key={number}>
                 <td>{number}</td>
                 {repeats.map((repeat) => {
-                  const occurrence = newArrayOccurrences2.find(
-                    (occurrence) => occurrence[number] === repeat
-                  );
+                  const occurrence = newArrayOccurrences2.find((occurrence) => occurrence[number] === repeat);
                   return <td key={`${number}-${repeat}`}>{occurrence ? "X" : "-"}</td>;
                 })}
               </tr>
-            ))}</tbody>
+            ))}
+          </tbody>
         </table>
       </div>
     </section>
