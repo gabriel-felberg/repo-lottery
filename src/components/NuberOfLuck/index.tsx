@@ -1,11 +1,11 @@
-import axios from "axios";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useContext } from "react";
 import "./style.css";
+import { LotteryContext } from "../../Provider/Lottery";
 
-interface LotteryNumber {
-  context: number;
-  initial: number;
-}
+// interface LotteryNumber {
+//   context: number;
+//   initial: number;
+// }
 
 interface Occurrence {
   repeat: number;
@@ -16,44 +16,17 @@ interface TurnOccurrence {
   [key: string]: number;
 }
 
-function NumberOfLuck({ context, initial }: LotteryNumber) {
+function NumberOfLuck() {
   const [newArrayOccurrences, setNewArrayOccurrences] = useState<TurnOccurrence[]>([]);
   const [newArrayOccurrences2, setNewArrayOccurrences2] = useState<TurnOccurrence[]>([]);
-  const [allNumberArrays, setAllNumberArrays] = useState<string[][]>([]);
+
+  const {allNumberArrays} = useContext(LotteryContext)
 
   const arrayOfNumbersStartingFrom31: string[] = Array.from({ length: 30 }, (_, i) => (i + 31).toString().padStart(2, "0"));
   const arrayOfNumbersStartingFrom01: string[] = Array.from({ length: 30 }, (_, i) => (i + 1).toString().padStart(2, "0"));
   const turns = Array.from({ length: 596 }, (_, i) => i + 5);
   const repeats = Array.from({ length: 11 }, (_, i) => i + 3);
 
-  useEffect(() => {
-    let retries: number = 0;
-    const theBigArray: string[][] = [];
-
-    async function fetchNumbers() {
-      for (let i = initial; i <= context; i++) {
-        try {
-          const { data } = await axios.get(`https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena/${i}`);
-          theBigArray.push(data.listaDezenas);
-        } catch (err) {
-          if (retries <= 3) {
-            retries++;
-            await new Promise((resolve) => setTimeout(resolve, 400 * retries));
-            i--;
-          } else {
-            console.log("Erro ao buscar os números", err);
-            theBigArray.push(["00", "00", "00", "00", "00", "00"]);
-          }
-        }
-
-        if (i === context) break;
-      }
-
-      setAllNumberArrays(theBigArray);
-    }
-
-    fetchNumbers();
-  }, [context, initial]);
 
   const countOccurrencesMemoized = useCallback(
     (value: string, turn: number) => {

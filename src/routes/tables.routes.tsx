@@ -7,11 +7,11 @@ export const AppRouter = () => {
     <Routes>
       <Route
         path="/555Tabelas"
-        element={<SumDifferenceAndGroups context={2600} initial={1} />}
+        element={<SumDifferenceAndGroups />}
       />
       <Route
         path="/"
-        element={<NumberOfLuck context={2600} initial={1} />}
+        element={<NumberOfLuck />}
       />
     </Routes>
   );

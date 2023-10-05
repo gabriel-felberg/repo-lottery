@@ -1,16 +1,12 @@
-import axios from "axios";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useContext } from "react";
 import "./style.css";
+import { LotteryContext } from "../../Provider/Lottery";
 
 interface LotteryResult {
   listaDezenas: string[];
   contest: number;
 }
 
-interface LotteryNumber {
-  context: number;
-  initial: number;
-}
 interface Container {
   numbers: string[];
   group: Array<string>;
@@ -24,59 +20,16 @@ interface TurnOccurrence {
   result: Container[];
 }
 
-function SumDifferenceAndGroups({ context, initial }: LotteryNumber) {
-  const [responses, setResponses] = useState<LotteryResult[]>(
-    [] as LotteryResult[]
-  );
+function SumDifferenceAndGroups() {
+
   const [newArrayOccurrences, setNewArrayOccurrences] = useState<
     TurnOccurrence[]
   >([]);
 
+  const { responses } = useContext(LotteryContext)
+
   const turns = Array.from({ length: 596 }, (_, i) => i + 5);
 
-  useEffect(() => {
-    let retries: number = 0;
-    const numbersMap: LotteryResult[] = [];
-    async function fetchNumbers() {
-      for (let i = initial; i <= context; i++) {
-        try {
-          const { data } = await axios.get(
-            `https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena/${i}`
-          );
-          const newNumber = {
-            listaDezenas: data.listaDezenas,
-            contest: data.numero,
-          };
-          numbersMap.push(newNumber);
-          checkContest(data.numero, numbersMap);
-        } catch (err) {
-          if (retries <= 3) {
-            retries++;
-            await new Promise((resolve) => setTimeout(resolve, 400 * retries));
-            i--;
-          } else {
-            console.log("Erro ao buscar os números", err);
-            numbersMap.push({
-              listaDezenas: [],
-              contest: i,
-            });
-          }
-        }
-        if (i === context) break;
-      }
-      setResponses(numbersMap);
-    }
-    fetchNumbers();
-  }, [context, initial]);
-  function checkContest(contestNumber: number, results: LotteryResult[]) {
-    const found = results.some((result) => result.contest === contestNumber);
-    if (!found) {
-      results.unshift({
-        listaDezenas: [],
-        contest: contestNumber,
-      });
-    }
-  }
   function GetGroups(array: string[]) {
     const GroupArray: string[] = [];
     array?.forEach((e) => GroupArray.push(Math.ceil(+e / 5).toString()));
@@ -108,7 +61,7 @@ function SumDifferenceAndGroups({ context, initial }: LotteryNumber) {
     const results: Array<Container> = [];
 
     for (let i = array.length - 1; i > 0; i -= turns) {
-      if (results.length >= 10) break;
+      if (results.length >= 13) break;
       const container: Container = {
         numbers: ["", "", "", "", "", ""],
         group: ["", "", "", "", "", ""],
@@ -117,17 +70,20 @@ function SumDifferenceAndGroups({ context, initial }: LotteryNumber) {
         contest: array[i]?.contest,
       };
 
-      if (array[i]?.listaDezenas.length === 0) {
-        results.push(container);
-        continue;
-      }
+      // if (array[i]?.listaDezenas.length === 0) {
+      //   results.push(container);
+      //   continue;
+      // }
 
       container.numbers = array[i]?.listaDezenas;
       container.group = GetGroups(array[i]?.listaDezenas);
       container.difference = GetDifference(array[i]?.listaDezenas);
       container.sum = GetSum(array[i]?.listaDezenas);
 
-      results.push(container);
+      if (container.numbers[0] !== "") {
+        results.push(container);
+      }
+
     }
 
     return results;
@@ -151,7 +107,7 @@ function SumDifferenceAndGroups({ context, initial }: LotteryNumber) {
   return (
     <section>
       {newArrayOccurrences?.map((elem) => (
-        <table>
+        <table key={elem.turn}>
           <thead>
             <tr className="box">
               <th className="contest">{elem.turn}</th>
@@ -184,7 +140,7 @@ function SumDifferenceAndGroups({ context, initial }: LotteryNumber) {
           </thead>
           <tbody>
             {elem.result?.map((e) => (e.numbers.length !== 0 ?
-              <tr>
+              <tr >
                 <td>{e.contest}</td>
                 {e.numbers?.map((number) => (
                   <td className="bloco">{number}</td>
@@ -198,7 +154,7 @@ function SumDifferenceAndGroups({ context, initial }: LotteryNumber) {
                 {e.sum?.map((sum) => (
                   <td className="bloco">{sum}</td>
                 ))}
-              </tr>: null
+              </tr> : null
             ))}
           </tbody>
         </table>
