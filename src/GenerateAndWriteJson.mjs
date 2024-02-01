@@ -4,36 +4,78 @@ process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
 function transformarNumerosEArmazenarJSON() {
   const initial = 1; // Defina o valor inicial desejado
-  const context = 2602; // Defina o valor do concurso desejado
+  const context = 2670; // Defina o valor do concurso desejado
+  const lastNumber = 2664; // Defina o valor do ultimo concurso
+
+  function checkContest(contestNumber, results) {
+    const found = results.some((result) => result.contest === contestNumber);
+    if (!found) {
+      results.unshift({
+        listaDezenas: [],
+        contest: contestNumber,
+      });
+    }
+  }
 
   async function fetchNumbers() {
-    let retries = 0;
     const theBigArray = [];
+    const numbersMap = [];
 
     for (let i = initial; i <= context; i++) {
       try {
         const response = await fetch(`https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena/${i}`, {
           method: "GET",
-          // Adicione opções de configuração adicionais, se necessário
-          // Exemplo: headers, body, etc.
         });
+        console.log(response);
 
         if (response.ok) {
           const data = await response.json();
+          const newNumber = {
+            listaDezenas: data.listaDezenas,
+            contest: data.numero,
+          };
+          numbersMap.push(newNumber);
+          checkContest(data.numero, numbersMap);
+          console.log(newNumber);
+          console.log(numbersMap.length);
+
           theBigArray.push(data.listaDezenas);
         } else {
-          console.log("Erro ao buscar os números", response.status);
-          theBigArray.push(["00", "00", "00", "00", "00", "00"]);
+          if (i > lastNumber) {
+            console.log("Erro ao buscar os números");
+            numbersMap.push({
+              listaDezenas: [],
+              contest: i,
+            });
+            theBigArray.push(["00", "00", "00", "00", "00", "00"]);
+            i++;
+          }
+  
+          console.log(i);
+  
+          i -= 1;
+          // console.log(err);
+  
+          console.log(i);
         }
+        
       } catch (err) {
-        if (retries <= 3) {
-          retries++;
-          await new Promise((resolve) => setTimeout(resolve, 400 * retries));
-          i--;
-        } else {
+        if (i > lastNumber) {
           console.log("Erro ao buscar os números", err);
+          numbersMap.push({
+            listaDezenas: [],
+            contest: i,
+          });
           theBigArray.push(["00", "00", "00", "00", "00", "00"]);
+          i++;
         }
+
+        console.log(i);
+
+        i -= 1;
+        console.log(err);
+
+        console.log(i);
       }
 
       if (i === context) break;
@@ -54,10 +96,10 @@ function transformarNumerosEArmazenarJSON() {
     });
 
     // Passo 3: Converter o array em uma string JSON
-    const jsonString = JSON.stringify(theBigArray);
+    const jsonString = JSON.stringify(numbersMap);
 
     // Passo 4: Escrever o JSON em um arquivo
-    fs.writeFile("sextetos.json", jsonString, "utf8", (err) => {
+    fs.writeFile("src/sextetos2.json", jsonString, "utf8", (err) => {
       if (err) {
         console.error("Erro ao escrever o arquivo:", err);
         return;

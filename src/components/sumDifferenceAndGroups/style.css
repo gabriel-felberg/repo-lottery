@@ -17,20 +17,28 @@ table{
 }
 .contest{
     background-color: orange;
+    font-size: 20px;
+    font-weight: 800;
 }
 tr {
     background-color: #19cdff;
+    font-size: 20px;
+    font-weight: 800;
 }
 
 tbody td:first-child {
     background-color: aquamarine;
+    font-size: 20px;
+    font-weight: 800;
 }
 
 .bloco {
     background-color: #ab9c56;
     width: 10px;
     height: 10px;
-    padding: 5px;
+    padding: 10px;
+    font-size: 20px;
+    font-weight: 800;
 }
 section{
     margin-bottom: 100px;

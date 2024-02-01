@@ -26,9 +26,9 @@ function SumDifferenceAndGroups() {
     TurnOccurrence[]
   >([]);
 
-  const { responses } = useContext(LotteryContext)
+  const { responses,resulContext } = useContext(LotteryContext)
 
-  const turns = Array.from({ length: 596 }, (_, i) => i + 5);
+  const turns = Array.from({ length: 596 }, (_, i) => i + resulContext);
 
   function GetGroups(array: string[]) {
     const GroupArray: string[] = [];
@@ -61,7 +61,7 @@ function SumDifferenceAndGroups() {
     const results: Array<Container> = [];
 
     for (let i = array.length - 1; i > 0; i -= turns) {
-      if (results.length >= 13) break;
+      if (results.length >= 9) break;
       const container: Container = {
         numbers: ["", "", "", "", "", ""],
         group: ["", "", "", "", "", ""],
