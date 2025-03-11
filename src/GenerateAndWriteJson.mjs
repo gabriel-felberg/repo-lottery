@@ -1,11 +1,10 @@
-import fetch from "node-fetch"; // Desativar verificação de certificado SSL
 import fs from "fs";
-process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
 function transformarNumerosEArmazenarJSON() {
   const initial = 1; // Defina o valor inicial desejado
-  const context = 2670; // Defina o valor do concurso desejado
-  const lastNumber = 2664; // Defina o valor do ultimo concurso
+  const context = 2809; // Defina o valor do concurso desejado
+  const lastNumber = 2805; // Defina o valor do ultimo concurso
+  const resulContext = context - lastNumber; // Valor obtido da primeira volta
 
   function checkContest(contestNumber, results) {
     const found = results.some((result) => result.contest === contestNumber);
@@ -18,47 +17,94 @@ function transformarNumerosEArmazenarJSON() {
   }
 
   async function fetchNumbers() {
-    const theBigArray = [];
+    let theBigArray = [];
     const numbersMap = [];
+    const newArrayOccurrences = []
 
     for (let i = initial; i <= context; i++) {
       try {
         const response = await fetch(`https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena/${i}`, {
           method: "GET",
         });
-        console.log(response);
+        const data = await response.json();
+        // console.log(data);
+        const newNumber = {
+          listaDezenas: data.listaDezenas,
+          contest: data.numero,
+        };
+        numbersMap.push(newNumber);
+        checkContest(data.numero, numbersMap);
+        console.log(data.numero);
+        theBigArray.push(data.listaDezenas);
+        const turns = Array.from({ length: 596 }, (_, i) => i + resulContext);
 
-        if (response.ok) {
-          const data = await response.json();
-          const newNumber = {
-            listaDezenas: data.listaDezenas,
-            contest: data.numero,
-          };
-          numbersMap.push(newNumber);
-          checkContest(data.numero, numbersMap);
-          console.log(newNumber);
-          console.log(numbersMap.length);
+        // function GetGroups(array) {
+        //   const GroupArray = [];
+        //   array?.forEach((e) => GroupArray.push(Math.ceil(+e / 5).toString()));
+        //   return GroupArray;
+        // }
+        // function GetDifference(array) {
+        //   const DifferenceArray = [];
+        //   array?.forEach((e, i) => {
+        //     if (typeof array[i + 1] === "string")
+        //       DifferenceArray.push(Math.abs(+e - +array[i + 1]).toString());
+        //   });
+        //   return DifferenceArray;
+        // }
+        // function GetSum(array) {
 
-          theBigArray.push(data.listaDezenas);
-        } else {
-          if (i > lastNumber) {
-            console.log("Erro ao buscar os números");
-            numbersMap.push({
-              listaDezenas: [],
-              contest: i,
-            });
-            theBigArray.push(["00", "00", "00", "00", "00", "00"]);
-            i++;
+        //   let SumArray = [];
+        //   SumArray.push(array?.reduce((acc, cur) => (acc += +cur), 0).toString());
+        //   SumArray.push(array?.reduce((acc, cur) => (acc += +cur[0]), 0).toString());
+        //   SumArray.push(array?.reduce((acc, cur) => (acc += +cur[1]), 0).toString());
+        //   SumArray.push(
+        //     array?.reduce((acc, cur) => (acc += +cur[0] + +cur[1]), 0).toString()
+        //   );
+        //   return SumArray;
+        // }
+        function ResponseSumDifferenceAndGroups(
+          array,
+          turns
+        ) {
+          const results = [];
+
+          for (let i = array?.length - 1; i > 0; i -= turns) {
+            if (results?.length >= 16) break;
+            const container = {
+              numbers: ["", "", "", "", "", ""],
+              // group: ["", "", "", "", "", ""],
+              // difference: ["", "", "", "", ""],
+              // sum: ["", "", "", ""],
+              contest: array[i]?.contest,
+            };
+
+            container.numbers = array[i]?.listaDezenas;
+            // container.group = GetGroups(array[i]?.listaDezenas);
+            // container.difference = GetDifference(array[i]?.listaDezenas);
+            // container.sum = GetSum(array[i]?.listaDezenas);
+            if (container.numbers) {
+
+              if (container.numbers[0] !== "") {
+                results.push(container);
+                // results.push(array[i]?.listaDezenas)
+                // results.push(array[i]?.contest)
+
+              }
+            }
+            // else{
+            // results.push(["", "", "", "", "", ""])
+            // }
+
           }
-  
-          console.log(i);
-  
-          i -= 1;
-          // console.log(err);
-  
-          console.log(i);
+
+          return results;
         }
-        
+
+        const Occurrences = turns?.map((turn) => ({
+          // turn,
+          result: ResponseSumDifferenceAndGroups(numbersMap, turn),
+        }));
+        newArrayOccurrences.push(Occurrences);
       } catch (err) {
         if (i > lastNumber) {
           console.log("Erro ao buscar os números", err);
@@ -66,116 +112,145 @@ function transformarNumerosEArmazenarJSON() {
             listaDezenas: [],
             contest: i,
           });
-          theBigArray.push(["00", "00", "00", "00", "00", "00"]);
+          // theBigArray.push(["00", "00", "00", "00", "00", "00"]);
           i++;
         }
 
-        console.log(i);
-
         i -= 1;
-        console.log(err);
-
-        console.log(i);
       }
-
       if (i === context) break;
     }
 
-    // Passo 1: Converter as strings em números e diminuir pelo número posterior
-    let numerosDiminuidos = theBigArray.map((arrayDeStrings) => {
-      return arrayDeStrings.map((string, index, array) => {
-        const numeroAtual = Number(string);
-        const numeroPosterior = Number(array[index + 1]) || 0; // Se for o último número, assume 0
-        return (numeroAtual - numeroPosterior)*(-1);
-      });
-    });
+    fs.writeFileSync('lotteryResults.json', JSON.stringify(numbersMap));
 
-    // Passo 2: Obter apenas os 5 primeiros números de cada subarray
-    let resultadoArrays = numerosDiminuidos.map((numerosDiminuidosSubarray) => {
-      return numerosDiminuidosSubarray.slice(0, 5);
-    });
+    let results = [];
 
-    // Passo 3: Converter o array em uma string JSON
-    const jsonString = JSON.stringify(numbersMap);
-
-    // Passo 4: Escrever o JSON em um arquivo
-    fs.writeFile("src/sextetos2.json", jsonString, "utf8", (err) => {
-      if (err) {
-        console.error("Erro ao escrever o arquivo:", err);
-        return;
+    for (let i = 0; i <= theBigArray.length; i++) {
+      let result = theBigArray[i].map(e => Math.ceil(Number.parseInt(e) / 5))
+      // console.log(JSON.stringify(result))
+      if (JSON.stringify(result) === "[1,2,3,4,5,6]" ||JSON.stringify(result) === "[1,3,5,7,9,11]" || JSON.stringify(result) === "[2,4,6,8,10,12]" || JSON.stringify(result) === "[7,8,9,10,11,12]") {
+        console.log(theBigArray[i], result, i)
       }
-      console.log("Arquivo foi salvo com sucesso!");
+    }
+
+    WriteJson("allResults", theBigArray)
+
+    theBigArray = theBigArray.reverse();
+
+    for (let i = resulContext; i <= 600 - (resulContext + 1); i += 1) {
+      let subArray = [];
+      for (let j = i; j <= theBigArray?.length; j += i) {
+        subArray.push(theBigArray[j - 2]);
+      }
+      results.push(subArray);
+    }
+
+    // WriteJson("allResults", theBigArray)
+    WriteJson("TEST", results)
+
+
+    let subConjunto = []
+    let conjuntos = []
+
+    results?.forEach((e) => {
+      let arr = []
+      e?.forEach((numArr) => {
+        if (arr?.length <= 38) {
+          numArr?.forEach((num) => {
+            if (!arr.includes(num)) {
+              arr.push(num);
+            }
+          });
+        }
+      });
+      if (arr?.length >= 38) {
+        conjuntos.push(arr);
+      }
     });
+
+    let miniConjuntos = [];
+
+    results?.forEach((e) => {
+      let arr = []
+      e?.forEach((numArrMiniConjuntos) => {
+        if (arr?.length <= 18) {
+          numArrMiniConjuntos?.forEach((num) => {
+            if (!arr.includes(num)) {
+              arr.push(num);
+            } else {
+              arr = []
+              return
+            }
+          });
+        }
+      });
+      if (arr?.length === 18) {
+        miniConjuntos.push(arr);
+      }
+    });
+
+    for (let i = 0; i < results?.length; i++) {
+      let arr = [];
+      for (let j = 0; j < results[i]?.length; j++) {
+        let numArrConjunto = results[i][j];
+        if (arr?.length <= 18) {
+          for (let k = 0; k < numArrConjunto?.length; k++) {
+            // console.log(numArr);
+            let num = numArrConjunto[k];
+            if (!arr?.includes(num)) {
+              arr?.push(num);
+            } else {
+              arr = [];
+              break;
+            }
+          }
+        }
+      }
+      if (arr?.length === 18) {
+        miniConjuntos.push(arr);
+      }
+    }
+
+    conjuntos.forEach((e) => {
+      let arr = []
+      for (let i = 1; i <= 60; i++) {
+        if (!e.includes(i.toString().padStart(2, '0'))) {
+          arr.push(i.toString().padStart(2, '0'))
+        }
+      }
+      subConjunto.push(arr)
+    })
+    // console.log(conjuntos[0])
+    // console.log(subConjunto[0])
+
+
+
+    // WriteJson("TEST_number",  numbersMap)
+    // WriteJson("allResults", theBigArray)
+    // WriteJson("TEST_new",  newArrayOccurrences)
+    // WriteJson("TEST", results)
+    WriteJson("conjuntos", conjuntos)
+    WriteJson("subConjuntos", subConjunto)
+    WriteJson("miniConjuntos", miniConjuntos)
+    // console.log(results);
+
+
+    function WriteJson(name, arr) {
+
+      const jsonString = JSON.stringify(arr, null, 1);
+
+      // Passo 4: Escrever o JSON em um arquivo
+      fs.writeFile(`src/${name}.json`, jsonString, "utf-8", (err) => {
+        if (err) {
+          console.error("Erro ao escrever o arquivo:", err);
+          return;
+        }
+        console.log("Arquivo foi salvo com sucesso!");
+      });
+    }
   }
 
   fetchNumbers();
+
 }
-
-transformarNumerosEArmazenarJSON();
-
-// import megaJob from "../../megaJob.json"
-
-// function GenerateAndWriteJson() {
-//     function Factorial(factorial:number) {
-//         let result = factorial
-//         for (let i = 1; i < factorial; i++) {
-//             result *= i
-//         }
-//         return result
-//     }
-//     function GeneratePossibilities(numbers:number, cases:number) {
-//         const possibilities = Factorial(numbers)/(Factorial(cases)*Factorial(numbers-cases))
-//         let arr: string[] = []
-//         for (let i = 0; i < array.length; i++) {
-
-//         }
-//         return possibilities
-//     }
-//     function permutate(numbers: number[], size: number): number[][] {
-//         const results: number[][] = [];
-
-//         function permuteUtil(numbers: number[], permutation: number[], size: number): void {
-//           if (permutation.length === size) {
-//             results.push([...permutation]);
-//             return;
-//           }
-
-//           for (let i = 0; i < numbers.length; i++) {
-//             const current = numbers[i];
-//             if (!permutation.includes(current)) {
-//               permutation.push(current);
-//               permuteUtil(numbers, permutation, size);
-//               permutation.pop();
-//             }
-//           }
-//         }
-
-//         permuteUtil(numbers, [], size);
-//         return results;
-//       }
-
-//       const numbers: number[] = Array.from({length:60},(_,i)=> (i+1));
-//       const combinations: number[][] = permutate(numbers, 6);
-
-//       console.log(combinations);
-//       console.log("Total de combinações:", combinations.length);
-// }
-
-// const fs = require('fs');
-
-// const data = {
-//   key1: 'value1',
-//   key2: 'value2',
-//   key3: 'value3'
-// };
-
-// const jsonData = JSON.stringify(data, null, 2);
-
-// fs.writeFile('data.json', jsonData, 'utf8', (err) => {
-//   if (err) {
-//     console.error('Erro ao escrever o arquivo JSON:', err);
-//     return;
-//   }
-
-//   console.log('Arquivo JSON foi escrito com sucesso!');
-// });
+transformarNumerosEArmazenarJSON()
